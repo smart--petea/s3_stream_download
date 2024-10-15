@@ -50,9 +50,10 @@ async fn aws_copy(
     let upload_id = multipart_upload_res.upload_id.ok_or(std::io::Error::new(std::io::ErrorKind::Other, "Missing upload_id after CreateMultipartUpload"))?;
 
 
+    let mut buffer = vec![0u8; chunk_size];
+    let mut bufferReader = ReadBuf::new(&mut buffer);
     loop {
-        let mut buffer = vec![0u8; chunk_size];
-        let mut bufferReader = ReadBuf::new(&mut buffer);
+        bufferReader.clear();
 
         loop {
             let l1 = bufferReader.filled().len();
@@ -73,8 +74,7 @@ async fn aws_copy(
         println!("Part {} is downloaded.", part_number+1);
 
         part_number = part_number + 1;
-        let byte_stream = s3::primitives::ByteStream::from(Vec::from(bufferReader.filled())); //todo
-        //let byte_stream = s3::primitives::ByteStream::from(buffer); //todo
+        let byte_stream = s3::primitives::ByteStream::from(Vec::from(bufferReader.filled()));
 
         let upload_part_res = s3_aws_client
             .upload_part()
