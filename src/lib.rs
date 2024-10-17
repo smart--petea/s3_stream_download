@@ -15,7 +15,7 @@ pub struct S3StreamDownload
     key: String,
     client: Client,
     downloaded: i64,
-    to_download: i64,
+    pub content_length: i64,
     get_object_future: Option<Pin<Box<dyn Future<Output = Result<GetObjectOutput, SdkError<GetObjectError, HttpResponse>>>>>>,
     get_object_output: Option<GetObjectOutput>,
     chunk_size: i64,
@@ -46,7 +46,7 @@ impl S3StreamDownload
             get_object_future: None,
             get_object_output: None,
             downloaded: 0,
-            to_download: content_length.unwrap(),
+            content_length: content_length.unwrap(),
             chunk_size: chunk_size,
             retries_allowed: retries,
             retries_done: 0,
@@ -80,6 +80,7 @@ impl tokio::io::AsyncRead for S3StreamDownload
                 }
 
                 Poll::Ready(Some(Ok(bytes))) => {
+                    println!("downloaded: {}", bytes.len());
                     buf.put_slice(bytes.as_ref());
                     s3_stream.get_object_output.replace(get_object_output);
                     s3_stream.downloaded += bytes.len() as i64;
@@ -134,7 +135,7 @@ impl tokio::io::AsyncRead for S3StreamDownload
 
         let lower_range_bound = s3_stream.downloaded;
         let chunk_size = std::cmp::min(s3_stream.chunk_size,  buf.capacity() as i64);
-        let upper_range_bound = std::cmp::min(s3_stream.downloaded + chunk_size - 1, s3_stream.to_download);
+        let upper_range_bound = std::cmp::min(s3_stream.downloaded + chunk_size - 1, s3_stream.content_length);
         if lower_range_bound == upper_range_bound {
             return Poll::Ready(Ok(()));
         }
@@ -151,4 +152,8 @@ impl tokio::io::AsyncRead for S3StreamDownload
         cx.waker().wake_by_ref();
         return Poll::Pending;
     }
+}
+
+pub struct S3Object {
+
 }
