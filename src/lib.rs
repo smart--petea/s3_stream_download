@@ -136,7 +136,9 @@ impl tokio::io::AsyncRead for S3StreamDownload
         let lower_range_bound = s3_stream.downloaded;
         let chunk_size = std::cmp::min(s3_stream.chunk_size,  buf.capacity() as i64);
         let upper_range_bound = std::cmp::min(s3_stream.downloaded + chunk_size - 1, s3_stream.content_length);
+        println!("lower_range_bound={} upper_range_bound={}", lower_range_bound, upper_range_bound);
         if lower_range_bound == upper_range_bound {
+            println!("finished downloading");
             return Poll::Ready(Ok(()));
         }
 
